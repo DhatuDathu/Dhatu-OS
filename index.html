@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHATU OS - Digital Circle Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes spin-reverse { from { transform: rotate(360deg); } to { transform: rotate(0deg); } }
+        @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        .animate-spin-reverse { animation: spin-reverse 8s linear infinite; }
+        .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
+        
+        .paused { animation-play-state: paused !important; }
+        
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #0891b2; }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-300 min-h-screen font-sans selection:bg-cyan-500/30">
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_20px_rgba(6,182,212,0.4)]"></div>
+        <div class="text-cyan-500 font-mono text-xs tracking-[0.4em] uppercase">Initializing Dhatu Kernel</div>
+    </div>
+
+    <div class="flex flex-col min-h-screen p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full overflow-x-hidden">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 border-b border-slate-800 pb-6">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-cyan-600 rounded flex items-center justify-center shadow-[0_0_20px_rgba(8,145,178,0.4)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="15" x2="23" y2="15"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="15" x2="4" y2="15"></line></svg>
+                </div>
+                <div>
+                    <h1 class="text-white text-xl font-bold tracking-widest leading-none">DHATU OS</h1>
+                    <p class="text-[10px] text-cyan-500/70 font-mono mt-1 uppercase">Operational Dashboard // v2.4.1</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-4 md:gap-8 items-center text-xs font-mono">
+                <div class="hidden sm:flex flex-col items-end">
+                    <span class="text-slate-500 text-[9px] uppercase tracking-tighter">Status</span>
+                    <span class="text-cyan-400 uppercase" id="sys-status">Active</span>
+                </div>
+                <div class="flex flex-col items-end">
+                    <span class="text-slate-500 text-[9px] uppercase tracking-tighter">Queue Size</span>
+                    <span class="text-cyan-400 tabular-nums">200,000 Nodes</span>
+                </div>
+                <button id="toggle-kernel" class="px-5 py-2 rounded-full border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all font-bold text-[10px] tracking-widest">
+                    SUSPEND KERNEL
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Panel: Explorer (hidden on mobile, shown as column on md+) -->
+            <section class="lg:col-span-3 flex flex-col gap-6 order-2 lg:order-1">
+                <div class="glass-panel rounded-xl flex flex-col h-[300px] lg:h-1/2 overflow-hidden shadow-lg">
+                    <div class="bg-slate-800/50 px-4 py-2 flex justify-between items-center border-b border-slate-700">
+                        <span class="text-[10px] font-bold tracking-widest uppercase">File Explorer</span>
+                        <div class="flex gap-1.5">
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+                        </div>
+                    </div>
+                    <div class="p-4 font-mono text-xs overflow-y-auto space-y-3">
+                        <div class="text-cyan-500 flex items-center gap-2"><span class="opacity-50">📂</span> root</div>
+                        <div class="pl-4 text-slate-400">└─ 📁 bin</div>
+                        <div class="pl-4 text-slate-400">└─ 📁 dev</div>
+                        <div class="pl-4 text-slate-200">└─ 💿 STORAGE_POOL</div>
+                        <div class="pl-8 text-cyan-600/60 italic text-[10px]">operativesystemdathu.json</div>
+                        <div class="pl-8 text-cyan-600/60 italic text-[10px]">operativesystemdathu.csv</div>
+                        <div class="pl-4 text-slate-400">└─ 📁 sys</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-xl flex flex-col h-[300px] lg:h-1/2 overflow-hidden shadow-lg">
+                    <div class="bg-slate-800/50 px-4 py-2 flex justify-between items-center border-b border-slate-700">
+                        <span class="text-[10px] font-bold tracking-widest uppercase">System Trace</span>
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </div>
+                    <div id="log-container" class="p-4 font-mono text-[10px] space-y-1.5 overflow-y-auto">
+                        <!-- Logs inject here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Center Panel: The Circle (Always shown, top on mobile) -->
+            <section class="lg:col-span-6 flex flex-col items-center justify-center order-1 lg:order-2 py-8 lg:py-0">
+                <div class="relative flex items-center justify-center w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] md:w-[400px] md:h-[400px]">
+                    <!-- Rotating Rings -->
+                    <div id="ring-outer" class="absolute w-full h-full border-4 border-dashed border-cyan-500/20 rounded-full animate-spin-slow"></div>
+                    <div id="ring-inner" class="absolute w-[80%] h-[80%] border-2 border-cyan-400/30 rounded-full animate-spin-reverse"></div>
+                    
+                    <!-- Core Glow -->
+                    <div class="absolute w-[60%] h-[60%] bg-cyan-900/20 rounded-full blur-3xl border border-cyan-500/10"></div>
+                    
+                    <!-- Text Center -->
+                    <div class="z-10 text-center">
+                        <div class="text-cyan-500 font-mono text-[10px] uppercase tracking-[0.4em] mb-2 opacity-80">CPU Load</div>
+                        <div id="core-load" class="text-5xl sm:text-6xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">00%</div>
+                        <div id="core-instr" class="text-cyan-400 text-[11px] mt-4 font-mono tracking-wide px-3 py-1 bg-cyan-950/50 rounded border border-cyan-500/20 inline-block min-w-[140px]">WAITING...</div>
+                    </div>
+
+                    <!-- Orbiting Orbs (Hidden on very small screens) -->
+                    <div class="absolute inset-0 hidden sm:block">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_10px_#22d3ee]"></div>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-3 gap-3 w-full max-w-md">
+                    <div class="glass-panel p-3 rounded-lg border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase mb-1">MEM_ADDR</div>
+                        <div id="stat-mem" class="text-white font-mono text-xs">0x0000</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase mb-1">PRIORITY</div>
+                        <div id="stat-prio" class="text-white font-mono text-xs">LVL 0</div>
+                    </div>
+                    <div class="glass-panel p-3 rounded-lg border-slate-800 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase mb-1">OP_CODE</div>
+                        <div id="stat-op" class="text-white font-mono text-xs">0x00</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Status (shown as col on md+) -->
+            <section class="lg:col-span-3 flex flex-col gap-6 order-3">
+                <div class="glass-panel rounded-xl p-5 shadow-lg">
+                    <h3 class="text-[10px] font-bold tracking-[0.2em] text-slate-500 uppercase mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-cyan-500 rounded-full"></span> Resource Monitor
+                    </h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-2 font-mono">
+                                <span>CACHE_ALLOC</span>
+                                <span id="bar-cache-val">84%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-cyan-500 h-full w-[84%] shadow-[0_0_8px_#0891b2]"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-2 font-mono">
+                                <span>I/O_PRESSURE</span>
+                                <span id="bar-io-val">12%</span>
+                            </div>
+                            <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden">
+                                <div id="bar-io" class="bg-indigo-500 h-full transition-all duration-1000" style="width: 12%"></div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-800 mt-2">
+                            <div class="text-[10px] font-bold text-slate-500 mb-2 uppercase">Current Trace Path</div>
+                            <div id="trace-text" class="text-[10px] text-cyan-400/80 bg-black/40 p-3 rounded leading-relaxed border border-slate-800 italic">
+                                Initializing Dhatu-Lang bridge connection...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel rounded-xl overflow-hidden flex-1 min-h-[200px] flex flex-col shadow-lg">
+                    <div class="bg-indigo-950/20 px-4 py-2 border-b border-slate-700">
+                        <span class="text-[10px] font-mono text-indigo-400">browser_shell@dhatu_os</span>
+                    </div>
+                    <div class="p-4 font-mono text-[10px] text-indigo-300 flex-1 flex flex-col gap-2">
+                        <div>$ dh-info --runtime</div>
+                        <div class="text-slate-500 pl-2">Engine: Chrome V8 (Simulated)</div>
+                        <div class="text-slate-500 pl-2">Threads: 16 Virtual</div>
+                        <div>$ dh-status --nodes</div>
+                        <div id="shell-status" class="text-emerald-500 pl-2">Scanning 200,000 entries...</div>
+                        <div class="mt-auto animate-pulse">_</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-[9px] font-mono text-slate-500 tracking-widest uppercase">
+            <div class="flex gap-6 items-center">
+                <div class="flex items-center gap-2">
+                    <span id="sys-bulb" class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse-soft"></span>
+                    KERNEL_READY
+                </div>
+                <span class="hidden sm:block">|</span>
+                <span id="footer-data-count">DATALAKE: 000,000</span>
+            </div>
+            <div class="text-center sm:text-right">
+                DHATU CORE 2.0 // ESTABLISHED_CONNECTION_0xF34A
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        let isKernelActive = true;
+        let data = [];
+        let currentIndex = 0;
+        let logs = [];
+        
+        // DOM Elements
+        const coreLoad = document.getElementById('core-load');
+        const coreInstr = document.getElementById('core-instr');
+        const statMem = document.getElementById('stat-mem');
+        const statPrio = document.getElementById('stat-prio');
+        const statOp = document.getElementById('stat-op');
+        const barIo = document.getElementById('bar-io');
+        const barIoVal = document.getElementById('bar-io-val');
+        const traceText = document.getElementById('trace-text');
+        const logContainer = document.getElementById('log-container');
+        const loader = document.getElementById('loader');
+        const toggleBtn = document.getElementById('toggle-kernel');
+        const sysStatus = document.getElementById('sys-status');
+        const ringOuter = document.getElementById('ring-outer');
+        const ringInner = document.getElementById('ring-inner');
+        const sysBulb = document.getElementById('sys-bulb');
+        const footerCount = document.getElementById('footer-data-count');
+        const shellStatus = document.getElementById('shell-status');
+
+        // Initializing - Fetching Local JSON
+        async function init() {
+            try {
+                // Fetching the user provided large dataset
+                const response = await fetch('/artifacts/DhatuOS/public/data/operativesystemdathu(1).json');
+                if (response.ok) {
+                    data = await response.json();
+                } else {
+                    // Fallback mock data if fetch fails
+                    data = Array.from({ length: 1000 }, (_, i) => ({
+                        id: i,
+                        instr: ["DHATU_LOAD", "DHATU_STORE", "DHATU_ADD", "DHATU_WAIT"][i % 4],
+                        op: "0x" + Math.floor(Math.random() * 4096).toString(16),
+                        metrics: { cyc: Math.floor(Math.random() * 100), prio: Math.floor(Math.random() * 5) },
+                        mem: "0x" + Math.floor(Math.random() * 65536).toString(16).toUpperCase(),
+                        state: "ACTIVE",
+                        trace: "Dhatu_Kernel_Thread_" + i
+                    }));
+                }
+                footerCount.innerText = `DATALAKE: ${data.length.toLocaleString()} ENTRIES`;
+                shellStatus.innerText = `Mapped ${data.length.toLocaleString()} instructions.`;
+            } catch (err) {
+                console.error("Kernel init failed:", err);
+            } finally {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 700);
+                    startKernel();
+                }, 1000);
+            }
+        }
+
+        function updateUI() {
+            if (!isKernelActive || data.length === 0) return;
+
+            const item = data[currentIndex];
+            
+            // Central Dashboard
+            coreLoad.innerText = `${item.metrics.cyc.toString().padStart(2, '0')}%`;
+            coreInstr.innerText = item.instr;
+            
+            // Bottom Stats
+            statMem.innerText = item.mem;
+            statPrio.innerText = `LVL ${item.metrics.prio}`;
+            statOp.innerText = item.op;
+            
+            // Bars
+            const ioVal = Math.floor(Math.random() * 40) + 5;
+            barIo.style.width = `${ioVal}%`;
+            barIoVal.innerText = `${ioVal}%`;
+            
+            // Trace
+            traceText.innerText = item.trace || `No specific trace for ${item.instr}`;
+
+            // Logs
+            const logEntry = document.createElement('div');
+            logEntry.className = "text-slate-500 border-l border-slate-800 pl-2";
+            logEntry.innerHTML = `<span class="text-cyan-600">[${new Date().toLocaleTimeString([], {hour12:false})}]</span> <span class="text-slate-300">${item.instr}</span> exec at ${item.mem}`;
+            logContainer.prepend(logEntry);
+            
+            if (logContainer.children.length > 20) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+
+            currentIndex = (currentIndex + 1) % data.length;
+        }
+
+        function startKernel() {
+            setInterval(updateUI, 800);
+        }
+
+        // Toggle Logic
+        toggleBtn.addEventListener('click', () => {
+            isKernelActive = !isKernelActive;
+            if (isKernelActive) {
+                toggleBtn.innerText = "SUSPEND KERNEL";
+                toggleBtn.classList.remove('border-green-500/30', 'text-green-400', 'bg-green-500/5');
+                toggleBtn.classList.add('border-red-500/30', 'text-red-400', 'bg-red-500/5');
+                sysStatus.innerText = "Active";
+                sysStatus.classList.remove('text-amber-500');
+                sysStatus.classList.add('text-cyan-400');
+                ringOuter.classList.remove('paused');
+                ringInner.classList.remove('paused');
+                sysBulb.classList.add('animate-pulse-soft');
+                sysBulb.classList.remove('opacity-50');
+            } else {
+                toggleBtn.innerText = "RESUME KERNEL";
+                toggleBtn.classList.add('border-green-500/30', 'text-green-400', 'bg-green-500/5');
+                toggleBtn.classList.remove('border-red-500/30', 'text-red-400', 'bg-red-500/5');
+                sysStatus.innerText = "Suspended";
+                sysStatus.classList.add('text-amber-500');
+                sysStatus.classList.remove('text-cyan-400');
+                ringOuter.classList.add('paused');
+                ringInner.classList.add('paused');
+                sysBulb.classList.remove('animate-pulse-soft');
+                sysBulb.classList.add('opacity-50');
+            }
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
